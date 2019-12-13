@@ -154,8 +154,8 @@ if args.sketchfab:
     if args.verbose: print 'preparing sketchfab upload'
 
     with open(os.path.join(folder, 'sketchfab.timeframe'), 'w') as fh:
-        fh.write('1 xmas_tree_pc_0.ply\n')
-        fh.write('1 xmas_tree_pc_1.ply\n')
+        fh.write('1 xmas_tree_pc0.ply\n')
+        fh.write('1 xmas_tree_pc1.ply\n')
               
     with ZipFile(os.path.join(folder, 'my-awesome-christmas-tree.zip'),'w') as zip: 
         # writing each file one by one 
