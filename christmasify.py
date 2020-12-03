@@ -50,7 +50,7 @@ parser.add_argument('--verbose', action='store_true', help='add a snowy ground')
 args = parser.parse_args()
 
 # read in tree
-if args.verbose: print 'reading in point cloud:', args.tree
+if args.verbose: print('reading in point cloud:', args.tree)
 folder, tree = os.path.split(args.tree)
 if tree.endswith('.ply'):
     tree_pc = read_ply(args.tree)
@@ -61,7 +61,7 @@ else:
 # check and add colour if only xyz  
 tree_pc.rename(columns={'r':'red', 'g':'green', 'b':'blue'}, inplace=True)
 if 'red' not in tree_pc.columns or args.replace_brown:
-    if args.verbose: print 'painting the tree brown...'
+    if args.verbose: print('painting the tree brown...')
     tree_pc.loc[:, 'red'] = 160
     tree_pc.loc[:, 'green'] = 82
     tree_pc.loc[:, 'blue'] = 45
@@ -76,7 +76,7 @@ baubals = np.empty((0, 7))
 lights = np.empty((0, 8))
 
 # loop over slices in tree to add baubauls and lights
-if args.verbose: print 'adding lights and baubauls'
+if args.verbose: print('adding lights and baubauls')
 for z in tree_pc.zz.unique():
     
     if z < args.zmin: continue
@@ -85,19 +85,19 @@ for z in tree_pc.zz.unique():
     if len(z_slice) < 10: continue
     hull = spatial.ConvexHull(z_slice[['x', 'y']])
         
-    for baubal_ix in np.random.choice(hull.vertices, size=min(5, len(hull.vertices))):
+    for baubal_ix in np.random.choice(hull.vertices, size=min(2, len(hull.vertices))):
 
         # generate baubaul for layer (1 per layer)
         baubal_xy = z_slice[['x', 'y']].loc[z_slice.index[baubal_ix]]
         XY = np.identity(4)
         XY[:2, 3] = baubal_xy
-        XY[2, 3] = z
+        XY[2, 3] = z + np.random.random() * args.vertical_spacing
         bb_ = np.dot(XY, baubaul.T).T
         rgb = np.repeat(np.random.randint(0, 255, size=3), len(bb_), axis=0).reshape(-1, len(bb_)).T
         baubals = np.vstack([baubals, np.hstack([bb_, rgb])])
 
     # generate lights
-    n_lights = int(hull.volume) / 20
+    n_lights = int(hull.volume) 
     x_p = z_slice.x.min() + (np.ptp(z_slice.x.values) * np.random.random_sample(size=n_lights))
     y_p = z_slice.y.min() + (np.ptp(z_slice.y.values) * np.random.random_sample(size=n_lights))
     points = np.vstack([x_p.T, y_p.T]).T
@@ -119,17 +119,17 @@ for z in tree_pc.zz.unique():
         on = np.zeros((len(light_), 1)) + np.random.randint(1, high=3)
         lights = np.vstack([lights, np.hstack([light_, rgb, on])])
         
-    if args.verbose: print '...and more', np.random.choice(['lights', 'baubauls', 'mince pies'], p=[.4, .4, .2]), '...'
+    if args.verbose: print('...and more', np.random.choice(['lights', 'baubauls', 'mince pies'], p=[.4, .4, .2]), '...')
         
 # concatenate all baubauls and lights
 baubals = pd.DataFrame(baubals, columns=['x', 'y', 'z', 'a', 'red', 'green', 'blue'])
 lights = pd.DataFrame(lights, columns=['x', 'y', 'z', 'a', 'red', 'green', 'blue', 'on'])
 
 if args.snow:
-    if args.verbose: print 'adding a snow field'
-    X, Y, Z = np.meshgrid(np.arange(tree_pc.x.min(), tree_pc.x.max(), .1),
-                       np.arange(tree_pc.y.min(), tree_pc.y.max(), .1),
-                       tree_pc.z.min())
+    if args.verbose: print('adding a snow field')
+    X, Y, Z = np.meshgrid(np.arange(tree_pc.x.min() - 2, tree_pc.x.max() + 2, .05),
+                          np.arange(tree_pc.y.min() - 2, tree_pc.y.max() + 2, .05),
+                          tree_pc.z.min())
     Z += np.random.normal(scale=.5, size=Z.shape)
     Z = scipy.ndimage.filters.gaussian_filter(Z, 10, mode='reflect')
     snow = pd.DataFrame(data=np.vstack([X.flatten(), Y.flatten(), Z.flatten()]).T, columns=['x', 'y', 'z'])
@@ -143,7 +143,7 @@ tree_pc.loc[:, 'on'] = 0
 tree_pc = tree_pc.append(lights[['x', 'y', 'z', 'red', 'green', 'blue', 'on']])
 
 if args.sketchfab and len(tree_pc) > 3e6:
-    if args.verbose: print 'thinning from', len(tree_pc), 'to 2.5M points'
+    if args.verbose: print('thinning from', len(tree_pc), 'to 2.5M points')
     tree_pc = tree_pc.sample(n=int(3e6))
     
 for i, lo in enumerate([1, 2]): 
@@ -151,7 +151,7 @@ for i, lo in enumerate([1, 2]):
               tree_pc[tree_pc.on.isin([0, lo])][['x', 'y', 'z', 'red', 'green', 'blue']])
     
 if args.sketchfab:
-    if args.verbose: print 'preparing sketchfab upload'
+    if args.verbose: print('preparing sketchfab upload')
 
     with open(os.path.join(folder, 'sketchfab.timeframe'), 'w') as fh:
         fh.write('1 xmas_tree_pc0.ply\n')
@@ -164,5 +164,5 @@ if args.sketchfab:
         zip.write(os.path.join(folder, 'xmas_tree_pc1.ply'))
 
     if os.stat(os.path.join(folder, 'my-awesome-christmas-tree.zip')).st_size > 180000000:
-	print '!!! SketchFab file to big either reduce tree point density or increase vertical spacing !!!'   
+	print('!!! SketchFab file to big either reduce tree point density or increase vertical spacing !!!')   
                
